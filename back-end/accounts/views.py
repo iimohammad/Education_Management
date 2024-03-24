@@ -14,7 +14,7 @@ from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from django.urls import reverse
 from .models import User
-from .tasks import send_password_reset_email
+from config.celery import send_password_reset_email
 
 class LogoutAPIView(APIView):
     permission_classes = (IsAuthenticated,)
