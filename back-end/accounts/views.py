@@ -14,7 +14,9 @@ from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from django.urls import reverse
 from .models import User
-from config.celery import send_password_reset_email
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from .serializers import RequestTokenSerializer
 
 class LogoutAPIView(APIView):
     permission_classes = (IsAuthenticated,)
@@ -75,45 +77,36 @@ def google_auth_callback(request):
             return "Authentication successful"
     return "Authentication failed"
 
-class SendEmailToken(APIView):
-    permission_classes = (IsAuthenticated,)
+
+@method_decorator(csrf_exempt, name= "dispatch")
+class RequestTokenView(generics.GenericAPIView):
+    permission_classes = (IsAuthenticated,) 
+    serializer_class = RequestTokenSerializer
+     
+
     def post(self, request):
-        serializer = EmailSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
-            email = serializer.validated_data['email']
+            serializer.save()
+            reset_url = reverse('reset-password')
+
+            return Response({'detail': f'Token request successful. Please visit {reset_url} for instructions.'}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ChangePasswordView(APIView):
+    permission_classes = (IsAuthenticated,) 
+    serializer_class = ChangePasswordSerializer
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
             try:
-                user = User.objects.get(email=email)
-            except User.DoesNotExist:
-                return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-            
-            uid = urlsafe_base64_encode(force_bytes(user.pk))
-            token = default_token_generator.make_token(user)
-            reset_url = reverse('reset-password', kwargs={'uidb64': uid, 'token': token})
-            
-            # Send the reset URL via Celery task
-            send_password_reset_email.delay(email, reset_url)
-            return Response({'success': 'Email sent successfully'}, status=status.HTTP_200_OK)
+                serializer.save()
+                return Response({"message": "Password changed successfully"}, status=status.HTTP_200_OK)
+            except Exception as e:
+                return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class ResetPassword(APIView):
-    permission_classes = (IsAuthenticated,)
-    def post(self, request, uidb64, token):
-        serializer = ChangePasswordSerializer(data=request.data)
-        if serializer.is_valid():
-            try:
-                uid = urlsafe_base64_encode(uidb64).decode()
-                user = User.objects.get(pk=uid)
-            except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-                user = None
-            
-            if user is not None and default_token_generator.check_token(user, token):
-                new_password = serializer.validated_data['new_password']
-                user.set_password(new_password)
-                user.save()
-                return Response({'success': 'Password reset successfully'}, status=status.HTTP_200_OK)
-            else:
-                return Response({'error': 'Invalid token or user'}, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

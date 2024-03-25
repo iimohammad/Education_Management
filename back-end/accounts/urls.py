@@ -9,7 +9,7 @@ urlpatterns = [
     path('logout/', LogoutAPIView.as_view()),
     path('', RegisterUserApi.as_view()),
     path('change-password-request/', SendEmailToken.as_view()),
-    path('change-password-action/', ResetPassword.as_view()),
+    path('change-password-action/', ResetPassword.as_view(), name='reset-password'),
 
     # Google Login
     path('google-auth/', google_auth_redirect, name='google_auth_redirect'),
