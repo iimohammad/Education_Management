@@ -185,7 +185,7 @@ GOOGLE_REDIRECT_URI = local_settings.GOOGLE_REDIRECT_URI
 
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/1'
-
+import redis
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',

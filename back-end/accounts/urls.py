@@ -2,14 +2,14 @@ from django.urls import path, reverse_lazy
 from .views import google_auth_redirect, google_auth_callback
 from rest_framework.authtoken.views import obtain_auth_token
 from django.views.generic.base import RedirectView
-from .views import LogoutAPIView, RegisterUserApi, SendEmailToken, ResetPassword
+from .views import LogoutAPIView, RegisterUserApi, RequestTokenView, ChangePasswordView
 
 urlpatterns = [
     path('login/', obtain_auth_token, name='login'),
     path('logout/', LogoutAPIView.as_view()),
     path('', RegisterUserApi.as_view()),
-    path('change-password-request/', SendEmailToken.as_view()),
-    path('change-password-action/', ResetPassword.as_view(), name='reset-password'),
+    path('change-password-request/', RequestTokenView.as_view()),
+    path('change-password-action/', ChangePasswordView.as_view(), name='reset-password'),
 
     # Google Login
     path('google-auth/', google_auth_redirect, name='google_auth_redirect'),

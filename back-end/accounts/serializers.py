@@ -68,7 +68,7 @@ class StudentSerializer(serializers.ModelSerializer):
 class RequestTokenSerializer(serializers.Serializer):
     email = serializers.EmailField(write_only=True)
 
-    def generate_token():
+    def generate_token(self):
         token_length = 40
         characters = string.ascii_letters + string.digits
         return ''.join(random.choice(characters) for _ in range(token_length))
